@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "revision": 0,
+  "topic": "",
+  "goal": "",
+  "language": "",
+  "position": {"chapter_id": null, "unit_id": null, "phase": "intake", "question_id": null, "assistance": "none", "hints": []},
+  "sources": [],
+  "chapters": [],
+  "questions": [],
+  "attempts": [],
+  "preferences": {},
+  "next_action": "Choose a topic or resource."
+}
