@@ -212,6 +212,13 @@ class ExtractionTests(unittest.TestCase):
         self.assertIn("Fractions", result["records"][0]["text"])
         self.assertFalse(result["records"][0]["warnings"])
         self.assertIn("little_extracted_text", result["records"][1]["warnings"][0])
+        blocks = result["extracted_blocks"]
+        self.assertEqual([b["type"] for b in blocks], ["page", "page"])
+        self.assertEqual(blocks[0]["file_page"], 1)
+        self.assertEqual(blocks[0]["printed_page"], result["records"][0]["locator"]["page_label"])
+        self.assertEqual(blocks[1]["extraction_status"], "low_confidence")
+        self.assertEqual(blocks[1]["content"], "")
+        self.assertNotIn("line_range", blocks[1])
 
     def test_unsupported_missing_and_malformed_input(self):
         with self.assertRaisesRegex(ValueError, "not a local file"):
