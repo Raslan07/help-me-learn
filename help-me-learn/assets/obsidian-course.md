@@ -3,9 +3,9 @@ title: "{{course_title}}"
 course_id: "{{course_id}}"
 tags:
   - learning
-progress_mode: "{{structured-state_or_notes-only}}"
-progress_record: "{{actual_state_location_or_this_note_path}}"
-progress_revision: 0
+canonical_source: notes
+note_revision: 0
+last_updated: "{{date_of_confirmed_save}}"
 ---
 
 # {{course_title}}
