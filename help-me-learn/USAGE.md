@@ -16,8 +16,17 @@ The shared skill uses only Markdown, relative resource links, and basic name/des
 
 For optional MCP workflows and a ready-to-copy starting prompt, see [Using the integrations and studying effectively](#using-the-integrations-and-studying-effectively).
 
-- `scripts/session_state.py`: save and validate progress. Python standard library only; see [commands and schema](references/state-schema.md).
+- `scripts/session_state.py`: save/validate progress, check declared prerequisites with `readiness`, and suggest generic gap questions with `repair --generate`. The last two commands are read-only. Python standard library only; see [commands and schema](references/state-schema.md).
 - `scripts/extract_resource.py`: local UTF-8 text/Markdown and DOCX extraction with the standard library. PDF extraction requires optional `pypdf`. See [source handling](references/resources-and-visuals.md).
+
+Example diagnostic commands (replace the paths and chapter ID with your course's values):
+
+```text
+python <skill>/scripts/session_state.py readiness <learner>/state.json --chapter ch2
+python <skill>/scripts/session_state.py repair <learner>/state.json --chapter ch2 --generate
+```
+
+Readiness reports gaps including prerequisites demonstrated only with help. The learner can still continue. Repair output contains generic drafts for agent review; it does not save questions or grade answers. Extraction now includes a finer block view with heading paths while preserving existing `records` consumers.
 
 If PDF extraction is needed and installation is permitted, install `pypdf` in the Python environment used to run the helper. Browsing, OCR, chart inspection, and HTML rendering depend on the host. The skill gives fallbacks rather than requiring them.
 
@@ -36,6 +45,8 @@ PDF integration tests skip if `pypdf` is absent. [Validation notes](VALIDATION.m
 ## Using the integrations and studying effectively
 
 The skill now includes [Excalidraw guidance](references/excalidraw.md), [Obsidian guidance](references/obsidian.md), and an [Obsidian course-home template](assets/obsidian-course.md). MCP servers must be connected in the agent you are using. This package update does not configure those connections.
+
+Before the first persistent save, select [one authoritative progress record](references/obsidian.md#canonical-source-choose-one): JSON state with derived notes, or a notes-only `Start.md`. Use the same choice on resume. The [resilience guide](references/integration-resilience.md) defines bounded requests where the host supports timeouts, safe drawing retries, and no automatic Obsidian write retries.
 
 First, ask the agent to check the tools actually available. Excalidraw's [official MCP App](https://github.com/excalidraw/excalidraw-mcp) supports interactive diagrams in compatible hosts. Obsidian's [Local REST API with MCP](https://github.com/coddingtonbear/obsidian-local-rest-api) is a community option for vault access. Use each server's current instructions and your host's configuration format; do not copy another CLI's configuration blindly.
 
