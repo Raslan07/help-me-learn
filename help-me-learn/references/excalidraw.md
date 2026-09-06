@@ -8,6 +8,10 @@ Discover the actual connected tools. Read the server's format/reference tool bef
 
 The [official Excalidraw MCP repository](https://github.com/excalidraw/excalidraw-mcp) documents interactive diagram rendering through MCP Apps, with remote and local options. Inline interaction depends on the host's support. Checked 2026-09-06; consult current server instructions before setup. Configuration belongs to the host, not this skill.
 
+## Timeouts and failure paths
+
+Read [integration resilience](integration-resilience.md) before writes. Where the host supports it, use 5 seconds for creation/saving and 2 seconds for scene reads or existence checks. After an ambiguous creation, at most one checked, safe retry is allowed. No existence check or an operation still in flight means no duplicate create. Read the latest scene before an edit; preserve learner changes. Fall back to text or Mermaid with accurate saved/unsaved/unknown status.
+
 ## Draw for a learning outcome
 
 1. Identify the relationship to explain: sequence, comparison, hierarchy, or cause and effect. Use the inspected source or label the drawing as a conceptual example.
@@ -27,6 +31,6 @@ When saving to Obsidian, follow [Obsidian integration](obsidian.md): use a suppo
 
 ## Failure path
 
-If tools are absent, offer Mermaid, ASCII, or a short table. If creation fails, correct an actionable input error once; if still unavailable, use the fallback and preserve the intended explanation. Before retrying a timed-out creation, check whether a result already exists when the server supports that check. Do not repeatedly create duplicate scenes.
+If tools are absent, offer Mermaid, ASCII, or a short table. If creation fails, follow the bounded checks and retry policy above; correct an actionable input error only within that total budget. Preserve the intended explanation and do not repeatedly create duplicate scenes.
 
 Only send content needed for the diagram to the configured server. Use previously authorized integration scope; do not upload an entire private PDF simply to draw a concept from one paragraph.
