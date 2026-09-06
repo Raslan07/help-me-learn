@@ -4,7 +4,7 @@ Validation date: 2026-09-06. Local environment: Windows, Python 3.14.7. Optional
 
 ## Automated checks
 
-Result: all 16 tests passed with PDF support enabled; the skill-creator validator passed in UTF-8 mode, and all relative Markdown links resolved.
+Original baseline: 16 tests passed with PDF support enabled. The enhancement suite now contains 36 tests, including that baseline; results and scope are recorded below.
 
 The unittest suite covers UTF-8 state and CLI output, valid updates and revisions, stale updates, duplicate JSON keys, invalid evidence links, assisted-versus-independent evidence, preserved attempt/question history, pending hints across resume, exclusive locks, and simulated replacement failure preserving the previous file.
 
@@ -20,7 +20,33 @@ python -X utf8 C:/Users/HP/.codex/skills/.system/skill-creator/scripts/quick_val
 
 These are local developer paths, not required installation paths. The `-X utf8` option avoids the external validator's reliance on Windows' default text encoding. The skill helpers read/write UTF-8 explicitly.
 
-## Instructional walkthroughs
+## Enhancement implementation
+
+Implemented all four phases in `help-me-learn-improvements-prompt.md`, including the optional heading extraction and repair helpers. No README styling or UI behavior changed.
+
+| Scope | Verification |
+| --- | --- |
+| Assessment generation | Separate generation reference covers E/A/T/W patterns, coverage limits, acceptance criteria, anti-priming, and domain examples. Linked from the skill and grading reference. |
+| Canonical progress | JSON and notes-only decision paths, mode metadata, legacy metadata mapping, partial-save states, expected summary drift, and substantive conflicts documented. Course-home template aligned. |
+| Readiness | Tests cover all evidence statuses, omitted/empty dependencies, shared and transitive prerequisites, invalid references, self/long cycles, unknown chapters, and a 1,101-outcome graph without recursion failure. |
+| Repair | Tests verify chapter/owner alignment, collision-free draft IDs, valid repair attempts, no-gap behavior, and read-only CLI output preserving original files. |
+| Extraction | Tests cover nested/skipped/sibling headings, fenced code, multiline paragraphs, style-name inheritance, DOCX tables, hashes, block IDs, and preserved legacy records. PDF page blocks retain labels and low-text warnings. |
+| MCP resilience | Author-reviewed deadline examples and failure scenarios. No live timeout, cancellation, retry, note-write, or diagram-export experiment was performed. Host controls are required to enforce 5s/2s deadlines. |
+
+### Reconciliations with the supplied examples
+
+- The Phase 1 extraction example is now the actual legacy `records` contract; Phase 4 adds `extracted_blocks` and metadata under format 1.1 without removing it. PDF blocks are pages; DOCX gets body locators, not invented lines. OCR confidence and image descriptions remain unimplemented.
+- A numerator can be zero. Question-generation examples correct that misconception and do not infer outcome coverage from question count.
+- `demonstrated-with-help` is a readiness gap; this report does not prevent the learner from proceeding. Repair questions target the original outcome's chapter, preserving existing state validation.
+- DOCX hierarchy reads stored style names, inheritance, and outline levels directly with the standard library, avoiding an extra `python-docx` dependency.
+- Drawing retries are bounded and require a safe existence/idempotency check. The prompt's more specific Obsidian rule takes precedence over its general retry example: no automatic note-write retries. Unknown completion stays unknown.
+- A stale derived note is normal in JSON mode. Substantive disagreement is resolved with the learner before changing authority; existing notes are not archived simply because both files exist.
+
+### Result
+
+All 36 tests passed with PDF support enabled. Skill/frontmatter, template YAML, relative links, and documentation examples are checked separately from behavioral tests. MCP deadlines and persistence policy are instructions rather than an implemented transport wrapper. Existing version 1 state files without prerequisites remain valid; the added `repair` attempt kind requires the updated helper.
+
+## Original instructional walkthroughs
 
 The following are author-reviewed example interactions, not independent model evaluations or live tests in three CLI products.
 
@@ -60,7 +86,7 @@ Review: The same learning relationship remains available without a visual render
 
 ## Limits
 
-### Optional MCP update
+### Earlier optional MCP update
 
 Added Excalidraw and Obsidian reference workflows, an Obsidian course-home template, and practical usage prompts. Excalidraw tool discovery and its read-only `read_me` call succeeded in this session. Diagram creation, exports, and Obsidian writes were not live-tested; no Obsidian MCP tools were exposed. This update configures skill behavior, not host connections.
 
