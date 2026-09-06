@@ -2,6 +2,8 @@
 
 ## Prepare the set
 
+For question types, coverage, and sequencing, read [generating question sets](assessment-generation.md). Use the guidance below to collect and review the resulting attempts.
+
 Map each question to one or more taught outcomes. Prepare expected reasoning, acceptable alternatives, and a misconception check before collecting answers. Typically use 3–5 questions, adjusted to the learner's time and outcome coverage. If the time only permits one, explicitly leave uncovered outcomes unassessed.
 
 Use explanation, application, and transfer appropriately. Multiple choice can reduce response effort, but a correct selection alone is weak evidence of reasoning; ask for a brief reason when needed. For design, writing, or other open-ended work, define relevant criteria rather than a single prescribed answer.
@@ -48,3 +50,8 @@ Learner: “2/5, because I add the tops and bottoms.”
 Feedback: “You identified the numerators and denominators. The gap is adding denominators: halves and thirds are different-sized pieces. Rewrite them as sixths: 1/2 = 3/6 and 1/3 = 2/6, so the sum is 5/6. Adding tops and bottoms does not preserve the quantities in this addition. Try 1/2 + 1/4 using equal-sized pieces.”
 
 A learner who correctly uses decimals or another valid method gets credit. If that method does not show an explicitly assessed outcome, such as constructing a common denominator, ask for that step rather than marking the whole answer wrong.
+
+
+## Question set structure
+
+Use explanation, application, transfer/misconception, and optional worked-reverse questions as described in [assessment generation](assessment-generation.md). Map each to the specific outcomes it assesses. Question count alone does not establish outcome coverage or mastery.
