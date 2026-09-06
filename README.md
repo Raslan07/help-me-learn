@@ -205,7 +205,7 @@ help-me-learn/
 └── tests/            # Helper regression tests
 ```
 
-The Python helpers are optional. `session_state.py` uses the standard library to validate and save progress. `extract_resource.py` supports text, Markdown, and DOCX with the standard library; PDF extraction needs `pypdf` in the Python environment running the script:
+The Python helpers are optional. `session_state.py` validates and saves progress, checks prerequisite readiness, and drafts generic repair questions without changing state. `extract_resource.py` adds heading paths and source-scoped block IDs while preserving its original record format. Both use the standard library for their core work; PDF extraction needs `pypdf` in the Python environment running the script:
 
 ```bash
 python -m pip install pypdf
@@ -217,7 +217,7 @@ Keep learner answers and progress in a separate workspace or selected vault. See
 
 ## Validation and compatibility
 
-The local helper suite passed **16 tests** on Windows with Python 3.14.7, including PDF extraction, Unicode output, state validation, and failed-write recovery. The skill structure, reference links, and template YAML were also checked.
+The local helper suite passed **36 tests** on Windows with Python 3.14.7, including prerequisite graphs, repair drafts, heading extraction, Unicode output, state validation, and failed-write recovery. The skill structure, reference links, and template YAML were also checked.
 
 Run the helper tests from the repository root:
 
