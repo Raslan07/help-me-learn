@@ -10,11 +10,13 @@ Preserve supplied source files. For large documents, inspect headings and releva
 
 Run `python <skill-folder>/scripts/extract_resource.py <local-file> --source-id s1` to print JSON. Redirect stdout to a new file in the learner workspace when desired. The helper does not fetch URLs or upload files.
 
+See the [extraction contract](state-schema.md#resource-extraction-schema) for both legacy `records` and additive `extracted_blocks`. Format 1.1 adds source-scoped block IDs, heading paths, basic DOCX table cells, fenced Markdown code labels, and extraction metadata. Store the source hash with citations; positional IDs can change after an edit.
+
 | Input | Behavior and limit |
 | --- | --- |
-| UTF-8 `.txt`, `.md`, `.markdown` | Preserves line ranges and Markdown headings. Other encodings require conversion or host tools. |
+| UTF-8 `.txt`, `.md`, `.markdown` | Preserves line ranges. Markdown block output separates ATX headings, paragraphs, and fenced code with heading hierarchy; legacy records remain grouped. Other encodings require conversion or host tools. |
 | `.pdf` | Optional `pypdf`; emits one record per file page, including printed label when available. Little extracted text is flagged for inspection. Images, equations, layout, and reading order need verification. |
-| `.docx` | Uses the Python standard library to read main-body paragraphs and tables in document order, including heading styles. Does not extract embedded images, headers/footers, comments, text boxes, or layout/page numbers. |
+| `.docx` | Uses the standard library to read main-body paragraphs and tables in order, resolving heading style names, outline levels, and inherited styles. Does not extract embedded images, headers/footers, comments, text boxes, or layout/page numbers. |
 | Other files, scans, URLs | Use available host capabilities. Do not claim the helper supports them. |
 
 If `pypdf` is missing, the helper reports it without installing anything. Use the host's existing PDF reader or install the optional dependency within authorized scope. OCR is not bundled. A low-text flag is not a scan diagnosis; a page may be a diagram, blank, or contain extraction failures.
