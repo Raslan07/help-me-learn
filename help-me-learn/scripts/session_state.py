@@ -39,6 +39,45 @@ def records(items, where):
     return result
 
 
+def prerequisite_order(outcomes):
+    """Validate optional edges and return dependencies before their dependents."""
+    graph = {}
+    for oid, (_, outcome) in outcomes.items():
+        dependencies = outcome.get("prerequisite_outcome_ids", [])
+        require(isinstance(dependencies, list), f"{oid}.prerequisite_outcome_ids must be a list")
+        seen = set()
+        for dependency in dependencies:
+            require(isinstance(dependency, str) and dependency in outcomes,
+                    f"unknown prerequisite for {oid}: {dependency}")
+            require(dependency != oid, f"prerequisite cycle: {oid} -> {oid}")
+            require(dependency not in seen, f"duplicate prerequisite for {oid}: {dependency}")
+            seen.add(dependency)
+        graph[oid] = dependencies
+
+    order, completed, active = [], set(), set()
+    for root in graph:
+        if root in completed:
+            continue
+        stack = [(root, iter(graph[root]))]
+        active.add(root)
+        while stack:
+            oid, children = stack[-1]
+            dependency = next(children, None)
+            if dependency is None:
+                stack.pop()
+                active.remove(oid)
+                completed.add(oid)
+                order.append(oid)
+            elif dependency in active:
+                path = [entry[0] for entry in stack]
+                cycle = path[path.index(dependency):] + [dependency]
+                raise ValueError(f"prerequisite cycle: {' -> '.join(cycle)}")
+            elif dependency not in completed:
+                active.add(dependency)
+                stack.append((dependency, iter(graph[dependency])))
+    return order
+
+
 def validate(state):
     fields(state, ["schema_version", "revision", "topic", "goal", "language", "position",
                    "sources", "chapters", "questions", "attempts", "preferences", "next_action"], "state")
@@ -83,6 +122,8 @@ def validate(state):
             require(isinstance(outcome["evidence_attempt_ids"], list), "evidence_attempt_ids must be a list")
             all_outcomes[oid] = (cid, outcome)
 
+    prerequisite_order(all_outcomes)
+
     questions = records(state["questions"], "questions")
     for question in questions.values():
         fields(question, ["chapter_id", "outcome_ids", "prompt"], "question")
@@ -102,7 +143,7 @@ def validate(state):
         for key in ("answer", "feedback"):
             string(attempt[key], f"attempt.{key}")
         require(attempt["assistance"] in ("none", "hint", "solution"), "invalid assistance")
-        require(attempt["kind"] in ("practice", "chapter-check", "retry", "delayed-retrieval"), "invalid attempt kind")
+        require(attempt["kind"] in ("practice", "chapter-check", "retry", "delayed-retrieval", "repair"), "invalid attempt kind")
         if attempt["kind"] == "delayed-retrieval":
             from datetime import date
             string(attempt.get("date"), "delayed-retrieval.date", True)
@@ -134,6 +175,76 @@ def validate(state):
         for hint in position["hints"]:
             string(hint, "position hint")
     return state
+
+
+def learning_graph(state, chapter_id):
+    validate(state)
+    chapters = {chapter["id"]: chapter for chapter in state["chapters"]}
+    require(chapter_id in chapters, f"unknown chapter: {chapter_id}")
+    outcomes = {outcome["id"]: (chapter["id"], outcome)
+                for chapter in state["chapters"] for outcome in chapter["outcomes"]}
+    return chapters, outcomes, prerequisite_order(outcomes)
+
+
+def dependency_closure(outcomes, roots):
+    visited, pending = set(), list(roots)
+    while pending:
+        oid = pending.pop()
+        if oid not in visited:
+            visited.add(oid)
+            pending.extend(outcomes[oid][1].get("prerequisite_outcome_ids", []))
+    return visited
+
+
+def readiness(state, chapter_id):
+    """Report declared prerequisite evidence without changing learner progress."""
+    chapters, outcomes, order = learning_graph(state, chapter_id)
+    details, required = [], set()
+    for outcome in chapters[chapter_id]["outcomes"]:
+        direct = outcome.get("prerequisite_outcome_ids", [])
+        dependencies = dependency_closure(outcomes, direct)
+        required.update(dependencies)
+        details.append({"id": outcome["id"], "description": outcome["description"],
+                        "prerequisites": direct,
+                        "status": {oid: outcomes[oid][1]["status"] for oid in direct},
+                        "transitive_prerequisites": [oid for oid in order if oid in dependencies]})
+    gaps = []
+    for oid in order:
+        owner, outcome = outcomes[oid]
+        if oid in required and outcome["status"] != "demonstrated-independently":
+            gaps.append({"outcome_id": oid, "chapter_id": owner,
+                         "description": outcome["description"], "current_status": outcome["status"],
+                         "repair_suggestion": f"Try one fresh explanation or application of '{outcome['description']}' from {chapters[owner]['title']}; check it without hints."})
+    return {"chapter_id": chapter_id, "chapter_title": chapters[chapter_id]["title"],
+            "readiness": "not_ready" if gaps else "ready",
+            "details": {"outcomes": details, "gaps": gaps}}
+
+
+def repair(state, chapter_id, generate=False):
+    """Draft generic prompts for recorded gaps; the teaching agent reviews them."""
+    chapters, outcomes, order = learning_graph(state, chapter_id)
+    relevant = dependency_closure(outcomes, [outcome["id"] for outcome in chapters[chapter_id]["outcomes"]])
+    used_ids = {question["id"] for question in state["questions"]}
+    gaps = []
+    for oid in order:
+        owner, outcome = outcomes[oid]
+        if oid not in relevant or outcome["status"] != "needs-practice":
+            continue
+        gap = {"outcome_id": oid, "chapter_id": owner,
+               "description": outcome["description"], "status": outcome["status"]}
+        if generate:
+            base, suffix = f"repair-{oid}", 1
+            qid = base
+            while qid in used_ids:
+                qid = f"{base}-{suffix}"
+                suffix += 1
+            used_ids.add(qid)
+            gap["suggested_repair_question"] = {
+                "id": qid, "chapter_id": owner, "outcome_ids": [oid], "type": "explanation",
+                "prompt": f"For this learning goal: '{outcome['description']}', explain the key idea in your own words and give one brief example.",
+                "kind": "repair", "requires_agent_review": True}
+        gaps.append(gap)
+    return {"chapter_id": chapter_id, "chapter_title": chapters[chapter_id]["title"], "gaps": gaps}
 
 
 def reject_constant(value):
@@ -211,7 +322,7 @@ def main():
     sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    for command in ("init", "show", "validate", "update"):
+    for command in ("init", "show", "validate", "update", "readiness", "repair"):
         child = sub.add_parser(command)
         child.add_argument("path", type=Path)
         if command == "init":
@@ -219,6 +330,10 @@ def main():
             child.add_argument("--goal", default="")
         if command == "update":
             child.add_argument("--from", dest="candidate", required=True, type=Path)
+        if command in ("readiness", "repair"):
+            child.add_argument("--chapter", required=True)
+        if command == "repair":
+            child.add_argument("--generate", action="store_true", help="include generic question drafts; does not save them")
     args = parser.parse_args()
     try:
         if args.command == "init":
@@ -229,9 +344,13 @@ def main():
         elif args.command == "update":
             require(args.path.resolve() != args.candidate.resolve(), "candidate must be a separate file")
             result = save_state(args.path, read_state(args.candidate))
+        elif args.command == "readiness":
+            result = readiness(read_state(args.path), args.chapter)
+        elif args.command == "repair":
+            result = repair(read_state(args.path), args.chapter, args.generate)
         else:
             result = read_state(args.path)
-        print(json.dumps(result if args.command == "show" else {"ok": True, "revision": result["revision"]},
+        print(json.dumps(result if args.command in ("show", "readiness", "repair") else {"ok": True, "revision": result["revision"]},
                          ensure_ascii=False, indent=2))
     except (OSError, ValueError, TypeError) as exc:
         print(f"State error: {exc}", file=sys.stderr)
